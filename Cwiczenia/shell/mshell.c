@@ -5,6 +5,7 @@
 #include "config.h"
 #include "siparse.h"
 #include "utils.h"
+#include "builtins.h"
 
 void writeOut( char *str );
 void writeErr( char *str );
@@ -16,12 +17,12 @@ void parseError();
 int main( int argc, char *argv[] )
 {
   line *ln;
-  char input[2001];
+  char input[MAX_LINE_LENGTH + 10];
 
   while ( 1 )
   {
     writePrompt();
-    int length = readLine( input, 2000 );
+    int length = readLine( input, MAX_LINE_LENGTH );
 
     if ( length > 0 && length < MAX_LINE_LENGTH )
     {
@@ -33,35 +34,45 @@ int main( int argc, char *argv[] )
         parseError();
       }
 
-      int childPid = fork();
+      command *cmd = pickfirstcommand( ln );
 
-      if ( childPid )
+      BuiltInPtr ptr = getBuiltIn( cmd->argv[0] );
+
+      if ( ptr != NULL )
       {
-        waitpid( childPid, NULL, 0 );
+        ptr( cmd->argv );
       }
       else
       {
-        command *cmd = pickfirstcommand( ln );
-        execvp( cmd->argv[0], cmd->argv );
+        int childPid = fork();
 
-        switch ( errno )
+        if ( childPid )
         {
-          case ENOENT:
-            writeOut( cmd->argv[0] );
-            writeOut( ": no such file or directory\n" );
-            break;
-
-          case EACCES:
-            writeOut( cmd->argv[0] );
-            writeOut( ": permission denied\n" );
-            break;
-
-          default:
-            writeOut( cmd->argv[0] );
-            writeOut( ": exec error\n" );
+          waitpid( childPid, NULL, 0 );
         }
+        else
+        {
+          execvp( cmd->argv[0], cmd->argv );
 
-        exit( EXEC_FAILURE );
+          switch ( errno )
+          {
+            case ENOENT:
+              writeOut( cmd->argv[0] );
+              writeOut( ": no such file or directory\n" );
+              break;
+
+            case EACCES:
+              writeOut( cmd->argv[0] );
+              writeOut( ": permission denied\n" );
+              break;
+
+            default:
+              writeOut( cmd->argv[0] );
+              writeOut( ": exec error\n" );
+          }
+
+          exit( EXEC_FAILURE );
+        }
       }
     }
     else if ( length >= MAX_LINE_LENGTH )
@@ -70,7 +81,6 @@ int main( int argc, char *argv[] )
     }
     else if ( length == 0 )
     {
-      write( 1, "\n", 1 );
       exit( 0 );
     }
     else
@@ -78,123 +88,4 @@ int main( int argc, char *argv[] )
       exit( 1 );
     }
   }
-}
-
-// --- IN OUT
-
-void writeErr( char *str )
-{
-  write( 2, str, strlen( str ) );
-}
-void writeOut( char *str )
-{
-  write( 1, str, strlen( str ) );
-}
-
-struct stat sb;
-
-void writePrompt()
-{
-    fstat(0, &sb);
-    if()
-    {
-        TODO
-        writeOut( PROMPT_STR );
-    }
-}
-
-#define INBUFFER_SIZE 10000
-char inBuffer[INBUFFER_SIZE];
-
-char *inBufferIt = inBuffer;
-char *inBufferBegin = inBuffer;
-char *inBufferEnd = inBuffer;
-
-int inBufferCurrentPos();
-void warpBuffer();
-int fillLine( char *dest, int maxSize );
-
-int readLine( char *str, int maxSize )
-{
-    while( 1 ) 
-    {
-        while( inBufferIt < inBufferEnd )
-        {
-            if( inBufferCurrentPos() >= INBUFFER_SIZE )
-            {
-                warpBuffer();   
-            }
-            
-            if( *inBufferIt == '\n' )
-            {
-                return fillLine( str, maxSize );   
-            }
-            
-            inBufferIt ++;
-        }
-        
-        int readBytes = read( 0, inBufferIt, INBUFFER_SIZE - inBufferCurrentPos() );
-
-        if( readBytes >= 0 )
-        {
-            inBufferEnd += readBytes;   
-        }
-        else
-        {
-            return readBytes;   
-        }
-    }
-}
-
-int inBufferCurrentPos()
-{
-    return inBufferIt - inBuffer;   
-}
-void warpBuffer()
-{
-    if(inBufferBegin == inBuffer)
-    {
-        //TODO: error   
-    }
-    
-    char *ptr = inBuffer;
-    for(char *c = inBufferBegin; c < inBufferEnd; c++)
-    {
-        *ptr = *c;
-        ptr++;
-    }
-
-    int moved = inBufferBegin - inBuffer;
-    inBufferBegin -= moved;
-    inBufferIt -= moved;
-    inBufferEnd -= moved;
-}
-int fillLine( char *dest, int maxSize )
-{
-    if( inBufferIt - inBufferBegin > maxSize )
-    {
-        return -2; //TODO: errnumber 
-    }
-
-    for( char* c = inBufferBegin; c < inBufferIt; c++ )
-    {
-        *dest = *c;   
-        dest++;
-    }
-    *dest = NULL;
-
-    int res = inBufferIt - inBufferBegin;
-
-    inBufferIt ++;
-    inBufferBegin = inBufferIt;
-
-    return res;
-}
-
-// --- IN OUT END
-
-void parseError()
-{
-  writeErr( SYNTAX_ERROR_STR );
-  writeErr( "\n" );
 }
