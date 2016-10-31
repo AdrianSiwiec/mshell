@@ -1,4 +1,1 @@
-ls
-ls -al
-echo dzindobry
-
+ls | sort

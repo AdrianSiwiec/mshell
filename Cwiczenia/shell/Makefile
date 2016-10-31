@@ -3,7 +3,7 @@ CFLAGS=$(INC)
 
 PARSERDIR=input_parse
 
-SRCS=utils.c mshell.c builtins.c ioLib.c
+SRCS=utils.c mshell.c builtins.c ioLib.c commons.c
 OBJS:=$(SRCS:.c=.o)
 
 all: mshell

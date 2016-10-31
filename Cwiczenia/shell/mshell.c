@@ -1,11 +1,12 @@
 #include <errno.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 
+#include "builtins.h"
 #include "config.h"
 #include "siparse.h"
 #include "utils.h"
-#include "builtins.h"
 
 void writeOut( char *str );
 void writeErr( char *str );
@@ -13,6 +14,8 @@ void writePrompt();
 int readLine( char *str, int maxSize );
 
 void parseError();
+bool isLastPCmd( command **pcmd );
+bool isFirstPCmd( command **pcmd, pipeline *p );
 
 int main( int argc, char *argv[] )
 {
@@ -34,45 +37,93 @@ int main( int argc, char *argv[] )
         parseError();
       }
 
-      command *cmd = pickfirstcommand( ln );
+      pipeline *p = ln->pipelines;
 
-      BuiltInPtr ptr = getBuiltIn( cmd->argv[0] );
-
-      if ( ptr != NULL )
+      while ( *p != NULL )
       {
-        ptr( cmd->argv );
-      }
-      else
-      {
-        int childPid = fork();
+        command **pcmd = *p;
 
-        if ( childPid )
-        {
-          waitpid( childPid, NULL, 0 );
-        }
-        else
-        {
-          execvp( cmd->argv[0], cmd->argv );
+        int prevP[2];
+        int nextP[2];
 
-          switch ( errno )
+        while ( *pcmd != NULL )
+        {
+          command *cmd = *pcmd;
+
+          BuiltInPtr ptr = getBuiltIn( cmd->argv[0] );
+
+          if ( ptr != NULL )  // if is builtIn
           {
-            case ENOENT:
-              writeOut( cmd->argv[0] );
-              writeOut( ": no such file or directory\n" );
-              break;
+            ptr( cmd->argv );
+          }
+          else
+          {
+            if ( !isLastPCmd( pcmd ) )
+            {
+              if ( pipe( nextP ) < 0 )
+              {
+                printf( "could not create pipe\n" );
+                // TODO cannot create pipe
+              }
+            }
 
-            case EACCES:
-              writeOut( cmd->argv[0] );
-              writeOut( ": permission denied\n" );
-              break;
 
-            default:
-              writeOut( cmd->argv[0] );
-              writeOut( ": exec error\n" );
+            int childPid = fork();
+
+            if ( childPid )
+            {
+              close( nextP[1] ); //wtf why?
+
+              waitpid( childPid, NULL, 0 );
+            }
+            else
+            {
+              if ( !isLastPCmd( pcmd ) )  // if not last in pipeline
+              {
+                printf( " not last\n" );
+                close( 1 );  // close stdOut
+                dup( nextP[1] );
+                close( nextP[0] );
+              }
+
+              if ( !isFirstPCmd( pcmd, p ) )  // if not first in pipeline
+              {
+                printf( " not first\n" );
+                close( 0 );
+                dup( prevP[0] );
+                close( prevP[1] );
+              }
+
+              execvp( cmd->argv[0], cmd->argv );
+
+              switch ( errno )
+              {
+                case ENOENT:
+                  writeOut( cmd->argv[0] );
+                  writeOut( ": no such file or directory\n" );
+                  break;
+
+                case EACCES:
+                  writeOut( cmd->argv[0] );
+                  writeOut( ": permission denied\n" );
+                  break;
+
+                default:
+                  writeOut( cmd->argv[0] );
+                  writeOut( ": exec error\n" );
+              }
+
+              exit( EXEC_FAILURE );
+            }
+
+            prevP[0] = nextP[0];
+            prevP[1] = nextP[1];
           }
 
-          exit( EXEC_FAILURE );
+          pcmd++;
         }
+
+        p++;
       }
     }
     else if ( length >= MAX_LINE_LENGTH )
@@ -88,4 +139,13 @@ int main( int argc, char *argv[] )
       exit( 1 );
     }
   }
+}
+
+bool isLastPCmd( command **pcmd )
+{
+  return *( pcmd + 1 ) == NULL;
+}
+bool isFirstPCmd( command **pcmd, pipeline *p )
+{
+  return pcmd == *p;
 }
