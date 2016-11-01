@@ -42,7 +42,7 @@ void processRedirection( redirection *redir )
 
   if ( IS_RIN( redir->flags ) )
   {
-    if ( _debug ) printf( "in: %s\n", redir->filename );
+    if ( _debug ) printf( "__in: %s\n", redir->filename );
 
     redirectTo = 0;
     access = O_RDONLY;
@@ -50,7 +50,7 @@ void processRedirection( redirection *redir )
   }
   else if ( IS_ROUT( redir->flags ) )
   {
-    if ( _debug ) printf( "out: %s\n", redir->filename );
+    if ( _debug ) printf( "__out: %s\n", redir->filename );
 
     redirectTo = 1;
     access = O_WRONLY | O_CREAT | O_TRUNC;
@@ -58,10 +58,10 @@ void processRedirection( redirection *redir )
   }
   else if ( IS_RAPPEND( redir->flags ) )
   {
-    if ( _debug ) printf( "append: %s\n", redir->filename );
+    if ( _debug ) printf( "__append: %s\n", redir->filename );
 
     redirectTo = 1;
-    access = O_APPEND | O_CREAT;
+    access = O_WRONLY | O_APPEND | O_CREAT;
     permission = S_IRWXU;
   }
 
