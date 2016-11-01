@@ -1,8 +1,10 @@
 a.out
 builtins.c
 builtins.o
-commons.c
-commons.o
+C01
+C02
+C03
+C04
 in
 include
 input_parse
@@ -14,6 +16,10 @@ mshell
 mshell.c
 mshell.o
 out
+parserCommons.c
+parserCommons.o
+redirections.c
+redirections.o
 siparse.a
 utils.c
 utils.o
