@@ -4,7 +4,7 @@
 
 int isLastPCmd( command **pcmd )
 {
-  return (*( pcmd + 1 )) == NULL;
+  return ( *( pcmd + 1 ) ) == NULL;
 }
 int isFirstPCmd( command **pcmd, pipeline *p )
 {
@@ -43,4 +43,10 @@ int isLineInvalid( line *ln )
   }
 
   return 0;
+}
+int isPipelineEmpty( pipeline *p )
+{
+  command **pcmd = *p;
+
+  return ( *pcmd )->argv[0] == NULL;
 }

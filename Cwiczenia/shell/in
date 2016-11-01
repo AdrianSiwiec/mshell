@@ -1,3 +1,21 @@
-dupa
-pupa
-dupy 2
+a.out
+builtins.c
+builtins.o
+in
+include
+input_parse
+ioLib.c
+ioLib.o
+knownErrors
+Makefile
+mshell
+mshell.c
+mshell.o
+out
+parserCommons.c
+parserCommons.o
+redirections.c
+redirections.o
+siparse.a
+utils.c
+utils.o

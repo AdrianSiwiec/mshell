@@ -1,4 +1,0 @@
-- closes when first line contains multiple pipelines, and at least one is not empty
-- closes when line is ended with ;
-
-- lines longer than buffer size f*ck everything

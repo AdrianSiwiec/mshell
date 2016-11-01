@@ -11,17 +11,14 @@ void processPipeline( pipeline *p );
 void onExecError( command *cmd );
 
 void childHandler( int sigNb );
+void setChildHandler();
 
 int livingChildren = 0;
 int _debug = 1;
 
 int main( int argc, char *argv[] )
 {
-  struct sigaction act;
-  act.sa_handler = childHandler;
-  act.sa_flags = 0;
-  sigemptyset( &act.sa_mask );
-  sigaction( SIGCHLD, &act, NULL );
+  setChildHandler();
 
   line *ln;
   char input[MAX_LINE_LENGTH + 10];
@@ -80,15 +77,16 @@ void processLine( line *ln )
 
 void processPipeline( pipeline *p )
 {
-  command **pcmd = *p;
-
-  if ( ( *pcmd )->argv[0] == NULL )
+  if ( isPipelineEmpty( p ) )
   {
+    if ( _debug ) printf( "__empty pipeline is not executed\n" );
+
     return;
   }
 
   int prevP[2];
   int nextP[2];
+  command **pcmd = *p;
 
   while ( *pcmd != NULL )
   {
@@ -116,7 +114,10 @@ void processPipeline( pipeline *p )
 
       if ( childPid )
       {
-        close( nextP[1] );  // wtf why?
+        if ( !isLastPCmd( pcmd ) )
+        {
+          close( nextP[1] );  // wtf why?
+        }
 
         if ( !isFirstPCmd( pcmd, p ) )
         {
@@ -175,8 +176,15 @@ void childHandler( int sigNb )
     {
       livingChildren--;
 
-      if ( _debug ) printf( "living children: %d\n", livingChildren );
+      if ( _debug ) printf( "__living children: %d\n", livingChildren );
     }
   } while ( child > 0 );
 }
-
+void setChildHandler()
+{
+  struct sigaction act;
+  act.sa_handler = childHandler;
+  act.sa_flags = 0;
+  sigemptyset( &act.sa_mask );
+  sigaction( SIGCHLD, &act, NULL );
+}
