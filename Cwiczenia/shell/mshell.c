@@ -7,13 +7,17 @@
 #include "utils.h"
 
 void processLine( line *ln );
-void processPipeline( pipeline *p );
+void processPipeline( pipeline *p, int isBackground );
 void onExecError( command *cmd );
 
 void childHandler( int sigNb );
 void setChildHandler();
 
-int livingChildren = 0;
+#define maxForegroundChildren 60
+#define maxBackgroundChildren 60
+volatile int foregroundPids[maxForegroundChildren];
+volatile int livingChildren = 0;
+
 int _debug = 1;
 
 int main( int argc, char *argv[] )
@@ -45,9 +49,7 @@ int main( int argc, char *argv[] )
     }
     else
     {
-      if ( _debug ) printf( "ERROR, errno = %s, input = %s, length = %d", strerror( errno ), input, length );
-
-      exit( 2 );
+      exit( 1 );
     }
   }
 }
@@ -60,22 +62,31 @@ void processLine( line *ln )
     return;
   }
 
+  int isBackground = ln->flags & LINBACKGROUND;
+
+  if ( _debug ) printf( "__isBackground = %d\n", isBackground );
+
   pipeline *p = ln->pipelines;
+
+  sigprocmask( SIG_BLOCK, );
 
   while ( *p != NULL )
   {
-    processPipeline( p );
+    processPipeline( p, isBackground );
 
-    while ( livingChildren > 0 )
+    while ( !isBackground && livingChildren > 0 )
     {
-      pause();
+      sigsuspend();
+//      pause();
     }
 
     p++;
   }
+
+  sigprocmask();
 }
 
-void processPipeline( pipeline *p )
+void processPipeline( pipeline *p, int isBackground )
 {
   if ( isPipelineEmpty( p ) )
   {
@@ -126,6 +137,11 @@ void processPipeline( pipeline *p )
       }
       else
       {
+        if ( isBackground )
+        {
+          setsid();
+        }
+
         redirectPipes( prevP, nextP, pcmd, p );
 
         redirectFiles( cmd, p );

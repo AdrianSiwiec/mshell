@@ -79,7 +79,7 @@ int readLine( char *str, int maxSize )
     }
     else
     {
-      if ( readBytes < 0 && errno == EAGAIN ) continue;
+      if ( readBytes < 0 && ( errno == EAGAIN || errno == EINTR ) ) continue;
 
       return readBytes;
     }
