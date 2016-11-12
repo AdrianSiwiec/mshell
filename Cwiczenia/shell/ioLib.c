@@ -15,6 +15,12 @@ void writeOut( char *str )
 {
   write( 1, str, strlen( str ) );
 }
+void writeIntOut( int i )
+{
+  char buf[12] = {0};
+  sprintf( buf, "%d", i );
+  writeOut( buf );
+}
 
 struct stat sb;
 

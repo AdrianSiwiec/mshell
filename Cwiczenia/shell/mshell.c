@@ -9,26 +9,24 @@
 void processLine( line *ln );
 void processPipeline( pipeline *p, int isBackground );
 void onExecError( command *cmd );
+void setSIGINTHandler();
 
-void childHandler( int sigNb );
-void setChildHandler();
+extern volatile int foregroundChildren;
+struct sigaction oldSIGINTHandler;
 
-#define maxForegroundChildren 60
-#define maxBackgroundChildren 60
-volatile int foregroundPids[maxForegroundChildren];
-volatile int livingChildren = 0;
-
-int _debug = 1;
+int _debug = 0;
 
 int main( int argc, char *argv[] )
 {
   setChildHandler();
+  setSIGINTHandler();
 
   line *ln;
   char input[MAX_LINE_LENGTH + 10];
 
   while ( 1 )
   {
+    writeZombies();
     writePrompt();
     int length = readLine( input, MAX_LINE_LENGTH );
 
@@ -68,22 +66,25 @@ void processLine( line *ln )
 
   pipeline *p = ln->pipelines;
 
-  sigprocmask( SIG_BLOCK, );
+  sigset_t oldMask, newMask;
+
+  sigemptyset( &newMask );
+  sigaddset( &newMask, SIGCHLD );
+  sigprocmask( SIG_BLOCK, &newMask, &oldMask );
 
   while ( *p != NULL )
   {
     processPipeline( p, isBackground );
 
-    while ( !isBackground && livingChildren > 0 )
+    while ( !isBackground && foregroundChildren > 0 )
     {
-      sigsuspend();
-//      pause();
+      sigsuspend( &oldMask );
     }
 
     p++;
   }
 
-  sigprocmask();
+  sigprocmask( SIG_SETMASK, &oldMask, NULL );
 }
 
 void processPipeline( pipeline *p, int isBackground )
@@ -117,23 +118,23 @@ void processPipeline( pipeline *p, int isBackground )
         {
           printf( "could not create pipe\n" );
           // TODO cannot create pipe
+          exit( 1 );
         }
       }
 
-      livingChildren++;
       int childPid = fork();
 
       if ( childPid )
       {
-        if ( !isLastPCmd( pcmd ) )
+        if ( !isBackground )
         {
-          close( nextP[1] );  // wtf why?
+          foregroundChildren++;
+          addForegroundChild( childPid );
         }
 
-        if ( !isFirstPCmd( pcmd, p ) )
-        {
-          close( prevP[0] );
-        }
+        if ( !isLastPCmd( pcmd ) ) close( nextP[1] );
+
+        if ( !isFirstPCmd( pcmd, p ) ) close( prevP[0] );
       }
       else
       {
@@ -141,6 +142,11 @@ void processPipeline( pipeline *p, int isBackground )
         {
           setsid();
         }
+
+        sigset_t newMask;
+        sigemptyset( &newMask );
+        sigaddset( &newMask, SIGINT );
+        sigprocmask( SIG_UNBLOCK, &newMask, NULL );
 
         redirectPipes( prevP, nextP, pcmd, p );
 
@@ -180,27 +186,22 @@ void onExecError( command *cmd )
   exit( EXEC_FAILURE );
 }
 
-void childHandler( int sigNb )
+void SIGINTHandler()
 {
-  pid_t child;
-
-  do
-  {
-    child = waitpid( -1, NULL, WNOHANG );
-
-    if ( child > 0 )
-    {
-      livingChildren--;
-
-      if ( _debug ) printf( "__living children: %d\n", livingChildren );
-    }
-  } while ( child > 0 );
+  writeOut( "\n" );
+  writePrompt();
 }
-void setChildHandler()
+
+void setSIGINTHandler()
 {
-  struct sigaction act;
-  act.sa_handler = childHandler;
-  act.sa_flags = 0;
-  sigemptyset( &act.sa_mask );
-  sigaction( SIGCHLD, &act, NULL );
+  //  struct sigaction act;
+  //  act.sa_handler = SIGINTHandler;
+  //  act.sa_flags = 0;
+  //  sigemptyset( &act.sa_mask );
+  //  sigaction( SIGINT, &act, &oldSIGINTHandler );
+
+  sigset_t newMask;
+  sigemptyset( &newMask );
+  sigaddset( &newMask, SIGINT );
+  sigprocmask( SIG_BLOCK, &newMask, NULL );
 }
