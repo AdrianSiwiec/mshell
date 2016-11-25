@@ -8,6 +8,8 @@
 
 #include "builtins.h"
 
+extern int _debug;
+
 int echo( char *argv[] );
 int lexit( char *argv[] );
 int lcd( char *argv[] );
@@ -18,9 +20,9 @@ int undefined( char *argv[] );
 void onBuiltErr( char *name );
 
 builtin_pair builtins_table[] = {
-    {"exit", &lexit}, {"lecho", &echo}, {"lcd", &lcd}, {"lkill", &lkill}, {"lls", &lls}, {NULL, NULL}};
+  {"exit", &lexit}, {"lecho", &echo}, {"lcd", &lcd}, {"lkill", &lkill}, {"lls", &lls}, {NULL, NULL}};
 
-BuiltInPtr getBuiltIn( char *name )
+BuiltInPtr runBuildIn( char *name, char **arg )
 {
   builtin_pair *pair = builtins_table;
 
@@ -28,13 +30,21 @@ BuiltInPtr getBuiltIn( char *name )
   {
     if ( strcmp( name, pair->name ) == 0 )
     {
-      return pair->fun;
+      pair->fun( arg );
+      return 1;
     }
 
     pair++;
   }
 
-  return NULL;
+  return 0;
+}
+
+void run(BuiltInPtr ptr)
+{
+  printf(" %d\n", ptr);
+  ptr(NULL);
+  //ptr(NULL); 
 }
 
 int echo( char *argv[] )
@@ -157,6 +167,7 @@ int lkill( char *argv[] )
 
 int lls( char *argv[] )
 {
+  if(_debug) printf("LLS start\n");
   if ( argv[1] != NULL )
   {
     onBuiltErr( argv[0] );

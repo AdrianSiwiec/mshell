@@ -7,14 +7,14 @@
 #include "utils.h"
 
 void processLine( line *ln );
-void processPipeline( pipeline *p, int isBackground );
+int processPipeline( pipeline *p, int isBackground );
 void onExecError( command *cmd );
 void setSIGINTHandler();
 
 extern volatile int foregroundChildren;
 struct sigaction oldSIGINTHandler;
 
-int _debug = 0;
+int _debug = 1;
 
 int main( int argc, char *argv[] )
 {
@@ -74,9 +74,9 @@ void processLine( line *ln )
 
   while ( *p != NULL )
   {
-    processPipeline( p, isBackground );
+    int wasBuiltIn = processPipeline( p, isBackground );
 
-    while ( !isBackground && foregroundChildren > 0 )
+    while ( !wasBuiltIn && !isBackground && foregroundChildren > 0 )
     {
       sigsuspend( &oldMask );
     }
@@ -87,7 +87,7 @@ void processLine( line *ln )
   sigprocmask( SIG_SETMASK, &oldMask, NULL );
 }
 
-void processPipeline( pipeline *p, int isBackground )
+int processPipeline( pipeline *p, int isBackground )
 {
   if ( isPipelineEmpty( p ) )
   {
@@ -100,15 +100,15 @@ void processPipeline( pipeline *p, int isBackground )
   int nextP[2];
   command **pcmd = *p;
 
+  int wasBuiltIn = 0;
+
   while ( *pcmd != NULL )
   {
     command *cmd = *pcmd;
 
-    BuiltInPtr ptr = getBuiltIn( cmd->argv[0] );
-
-    if ( ptr != NULL )  // if is builtIn
+    if ( runBuildIn(cmd->argv[0], cmd->argv ))  // if is builtIn
     {
-      ptr( cmd->argv );
+      wasBuiltIn = 1;
     }
     else
     {
@@ -163,6 +163,8 @@ void processPipeline( pipeline *p, int isBackground )
 
     pcmd++;
   }
+
+  return wasBuiltIn;
 }
 void onExecError( command *cmd )
 {
