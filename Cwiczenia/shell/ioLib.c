@@ -7,6 +7,8 @@
 
 #include "config.h"
 
+extern int _debug;
+
 void writeErr( char *str )
 {
   write( 2, str, strlen( str ) );
@@ -24,14 +26,17 @@ void writeIntOut( int i )
 
 struct stat sb;
 
-void writePrompt()
+int isInTty()
 {
   fstat( 0, &sb );
 
-  if ( ( sb.st_mode & S_IFMT ) == S_IFCHR )
-  {
+  return ( sb.st_mode & S_IFMT ) == S_IFCHR;
+  
+}
+
+void writePrompt()
+{
     writeOut( PROMPT_STR );
-  }
 }
 
 #define INBUFFER_SIZE MAX_LINE_LENGTH * 2
@@ -58,6 +63,7 @@ int readLine( char *str, int maxSize )
       {
         if ( warpBuffer() )
         {
+          if(_debug) printf("__line longer than buffer\n");
           tooLongLine = true;
           break;
         }
@@ -65,10 +71,11 @@ int readLine( char *str, int maxSize )
 
       if ( *inBufferIt == '\n' )
       {
+        if(_debug) printf("__got endl!, before then was: %c\n", *(inBufferIt-1));
         if ( tooLongLine )
         {
-          errno = ENOMEM;
-          return -1;
+          fillLine( str, maxSize );
+          return -2;
         }
 
         return fillLine( str, maxSize );
@@ -78,16 +85,21 @@ int readLine( char *str, int maxSize )
     }
 
     int readBytes = read( 0, inBufferIt, INBUFFER_SIZE - inBufferCurrentPos() );
+    if(_debug) printf("__read: %d\n", readBytes);
 
     if ( readBytes > 0 )
     {
       inBufferEnd += readBytes;
     }
+    else if(readBytes == 0 )
+    {
+      return 0; 
+    }
     else
     {
       if ( readBytes < 0 && ( errno == EAGAIN || errno == EINTR ) ) continue;
 
-      return readBytes;
+      //return readBytes;
     }
   }
 }
@@ -100,6 +112,10 @@ int warpBuffer()
 {
   if ( inBufferBegin == inBuffer )
   {
+    for(int i=0; i<INBUFFER_SIZE; i++)
+    {
+      inBuffer[i] = 0; 
+    }
     setPointersDefault();
     return -1;
   }
@@ -125,9 +141,8 @@ int fillLine( char *dest, int maxSize )
 {
   if ( inBufferIt - inBufferBegin > maxSize )
   {
-    errno = ENOMEM;
     setPointersToEndOfLine();
-    return -1;
+    return -2;
   }
 
   char *c;

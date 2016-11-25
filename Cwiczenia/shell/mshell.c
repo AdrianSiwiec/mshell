@@ -14,7 +14,7 @@ void setSIGINTHandler();
 extern volatile int foregroundChildren;
 struct sigaction oldSIGINTHandler;
 
-int _debug = 1;
+int _debug = 0;
 
 int main( int argc, char *argv[] )
 {
@@ -26,9 +26,14 @@ int main( int argc, char *argv[] )
 
   while ( 1 )
   {
-    writeZombies();
-    writePrompt();
+    if( isInTty())
+    {
+      writeZombies();
+      writePrompt();
+    }
     int length = readLine( input, MAX_LINE_LENGTH );
+
+    if(_debug) printf("__read returned %d\n", length);
 
     if ( length > 0 && length < MAX_LINE_LENGTH )
     {
@@ -37,7 +42,7 @@ int main( int argc, char *argv[] )
 
       processLine( ln );
     }
-    else if ( length >= MAX_LINE_LENGTH )
+    else if ( length == -2 )
     {
       parseError();
     }
@@ -49,6 +54,8 @@ int main( int argc, char *argv[] )
     {
       exit( 1 );
     }
+
+    if(_debug) printf("__\n\n");
   }
 }
 
@@ -171,18 +178,18 @@ void onExecError( command *cmd )
   switch ( errno )
   {
     case ENOENT:
-      writeOut( cmd->argv[0] );
-      writeOut( ": no such file or directory\n" );
+      writeErr( cmd->argv[0] );
+      writeErr( ": no such file or directory\n" );
       break;
 
     case EACCES:
-      writeOut( cmd->argv[0] );
-      writeOut( ": permission denied\n" );
+      writeErr( cmd->argv[0] );
+      writeErr( ": permission denied\n" );
       break;
 
     default:
-      writeOut( cmd->argv[0] );
-      writeOut( ": exec error\n" );
+      writeErr( cmd->argv[0] );
+      writeErr( ": exec error\n" );
   }
 
   exit( EXEC_FAILURE );

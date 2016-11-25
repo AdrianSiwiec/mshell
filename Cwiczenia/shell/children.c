@@ -23,12 +23,13 @@ volatile int foregroundChildren = 0;
 void childHandler( int sigNb )
 {
   pid_t child;
-
-
+  
   do
   {
     int childStatus;
-    int child = waitpid( -1, &childStatus, WNOHANG );
+    child = waitpid( -1, &childStatus, WNOHANG );
+
+    if(_debug) printf("__Got child: %d\n", child);
 
     if ( child > 0 )
     {
@@ -39,6 +40,7 @@ void childHandler( int sigNb )
         if ( _debug ) printf( "__living foreground children: %d\n", foregroundChildren );
 
         removeForegroundChild( child );
+
       }
       else
       {

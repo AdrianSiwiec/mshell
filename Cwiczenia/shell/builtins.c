@@ -40,13 +40,6 @@ BuiltInPtr runBuildIn( char *name, char **arg )
   return 0;
 }
 
-void run(BuiltInPtr ptr)
-{
-  printf(" %d\n", ptr);
-  ptr(NULL);
-  //ptr(NULL); 
-}
-
 int echo( char *argv[] )
 {
   int i = 1;
@@ -167,7 +160,6 @@ int lkill( char *argv[] )
 
 int lls( char *argv[] )
 {
-  if(_debug) printf("LLS start\n");
   if ( argv[1] != NULL )
   {
     onBuiltErr( argv[0] );
