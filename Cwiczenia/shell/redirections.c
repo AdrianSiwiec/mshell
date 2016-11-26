@@ -15,6 +15,7 @@ void redirectPipes( int *prevP, int *nextP, command **pcmd, pipeline *p )
     close( 1 );  // close stdOut
     dup( nextP[1] );
     close( nextP[0] );
+    close( nextP[1] );
   }
 
   if ( !isFirstPCmd( pcmd, p ) )
@@ -22,6 +23,7 @@ void redirectPipes( int *prevP, int *nextP, command **pcmd, pipeline *p )
     close( 0 );
     dup( prevP[0] );
     close( prevP[1] );
+    close( prevP[0] );
   }
 }
 
@@ -72,6 +74,7 @@ int processRedirection( redirection *redir )
     permission = S_IRWXU;
   }
 
+  
   int res = open( redir->filename, access, permission );
 
   if ( res == -1 )
@@ -80,12 +83,15 @@ int processRedirection( redirection *redir )
     return -1;
   }
 
-  close( redirectTo );
+ close( redirectTo );
 
-  if ( dup( res ) != redirectTo )
-  {
-    return -1;
-  }
+ if ( dup( res ) != redirectTo )
+ {
+   printErrno( redir->filename, -1 );
+   return -1;
+ }
+ 
+ close( res );
   
   return 0;
 }
