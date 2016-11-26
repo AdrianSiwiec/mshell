@@ -1,3 +1,5 @@
+# redirection errors
+
 ls > /etc/passwd
 cat < servers/bummer
 
@@ -5,3 +7,4 @@ ls > /etc/passwd
 cat < servers/bummer
 
 bin/fdcounter
+

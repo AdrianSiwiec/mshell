@@ -108,7 +108,6 @@ int lkill( char *argv[] )
   long int sigNum, pid;
   int res;
 
-  // printf("%s\n", "XD");
   if ( argv[2] == NULL )
   {
     if ( strcmp( argv[1], "0" ) == 0 )
@@ -136,7 +135,7 @@ int lkill( char *argv[] )
       return -1;
     }
 
-    sigNum = strtol( argv[1], 0, 10 );
+    sigNum = strtol( argv[1]+1, 0, 10 );
     pid = strtol( argv[2], 0, 10 );
 
     if ( sigNum == 0 || ( pid == 0 && strcmp( argv[2], "0" ) != 0 ) )
@@ -146,6 +145,7 @@ int lkill( char *argv[] )
     }
   }
 
+  if( _debug ) printf("Trying to kill %d with %d", pid, sigNum);
   res = kill( pid, sigNum );
 
   if ( res == -1 )

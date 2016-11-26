@@ -1,0 +1,6 @@
+ls: write error: Bad file descriptor
+cat: -: Bad file descriptor
+cat: closing standard input: Bad file descriptor
+ls: write error: Bad file descriptor
+cat: -: Bad file descriptor
+cat: closing standard input: Bad file descriptor
