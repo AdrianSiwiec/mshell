@@ -1,6 +1,8 @@
 #include <fcntl.h>
+#include <errno.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "siparse.h"
 
@@ -23,19 +25,24 @@ void redirectPipes( int *prevP, int *nextP, command **pcmd, pipeline *p )
   }
 }
 
-void redirectFiles( command *cmd, pipeline *p )
+int redirectFiles( command *cmd, pipeline *p )
 {
   redirection **pRedir = cmd->redirs;
 
   while ( *pRedir != NULL )
   {
-    processRedirection( *pRedir );
+    if(processRedirection( *pRedir ) )
+    {
+      return -1; 
+    }
 
     pRedir++;
   }
+  
+  return 0;
 }
 
-void processRedirection( redirection *redir )
+int processRedirection( redirection *redir )
 {
   int redirectTo;
   int access, permission;
@@ -69,13 +76,17 @@ void processRedirection( redirection *redir )
 
   if ( res == -1 )
   {
-    // TODO handle
+    printErrno( redir->filename, errno );
+    return -1;
   }
 
   close( redirectTo );
 
   if ( dup( res ) != redirectTo )
   {
-    // TODO handle
+    return -1;
   }
+  
+  return 0;
 }
+

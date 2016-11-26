@@ -1,5 +1,5 @@
-#include <errno.h>
 #include <fcntl.h>
+#include <errno.h>
 #include <stdbool.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -187,4 +187,24 @@ void parseError()
 {
   writeErr( SYNTAX_ERROR_STR );
   writeErr( "\n" );
+}
+
+void printErrno( char *filename, int errnum )
+{
+  switch ( errnum )
+  {
+    case ENOENT:
+      writeErr( filename );
+      writeErr( ": no such file or directory\n" );
+      break;
+
+    case EACCES:
+      writeErr( filename );
+      writeErr( ": permission denied\n" );
+      break;
+
+    default:
+      writeErr( filename );
+      writeErr( ": unhandled errno\n" );
+  }
 }

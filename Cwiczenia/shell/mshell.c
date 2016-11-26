@@ -157,11 +157,15 @@ int processPipeline( pipeline *p, int isBackground )
 
         redirectPipes( prevP, nextP, pcmd, p );
 
-        redirectFiles( cmd, p );
+        int redirectionError = redirectFiles( cmd, p );
 
-        execvp( cmd->argv[0], cmd->argv );
+        if( !redirectionError )
+        {
+          execvp( cmd->argv[0], cmd->argv );
+          onExecError( cmd );
+        }
 
-        onExecError( cmd );
+        exit( EXEC_FAILURE );
       }
 
       prevP[0] = nextP[0];
@@ -175,23 +179,7 @@ int processPipeline( pipeline *p, int isBackground )
 }
 void onExecError( command *cmd )
 {
-  switch ( errno )
-  {
-    case ENOENT:
-      writeErr( cmd->argv[0] );
-      writeErr( ": no such file or directory\n" );
-      break;
-
-    case EACCES:
-      writeErr( cmd->argv[0] );
-      writeErr( ": permission denied\n" );
-      break;
-
-    default:
-      writeErr( cmd->argv[0] );
-      writeErr( ": exec error\n" );
-  }
-
+  printErrno( cmd->argv[0], errno );
   exit( EXEC_FAILURE );
 }
 

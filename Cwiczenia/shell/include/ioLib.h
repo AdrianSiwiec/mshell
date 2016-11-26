@@ -7,5 +7,6 @@ void writeErr( char *str );
 void writePrompt();
 int readLine( char *str, int maxSize );
 void parseError();
+void printErrno( char *filename, int errno );
 
 #endif
