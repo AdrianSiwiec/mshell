@@ -1,5 +1,5 @@
 INC=-Iinclude
-CFLAGS=$(INC)
+CFLAGS=$(INC) -w
 
 PARSERDIR=input_parse
 
@@ -9,10 +9,10 @@ OBJS:=$(SRCS:.c=.o)
 all: mshell
 
 mshell: $(OBJS) siparse.a
-	cc $(CFLAGS) $(OBJS) siparse.a -o $@ -w
+	cc $(CFLAGS) $(OBJS) siparse.a -o $@
 
 %.o: %.c
-	cc $(CFLAGS) -c $< -w
+	cc $(CFLAGS) -c $<
 
 siparse.a:
 	$(MAKE) -C $(PARSERDIR)
