@@ -1,6 +1,8 @@
 #include <errno.h>
+#include <signal.h>
 #include <stdio.h>
 #include <sys/wait.h>
+#include <sys/cdefs.h>
 
 #include "builtins.h"
 #include "config.h"
@@ -100,7 +102,7 @@ int processPipeline( pipeline *p, int isBackground )
   {
     if ( _debug ) printf( "__empty pipeline is not executed\n" );
 
-    return;
+    return 0;
   }
 
   int prevP[2];
