@@ -12,4 +12,6 @@ typedef int ( *BuiltInPtr )( char *argv[] );
 
 extern builtin_pair builtins_table[];
 
+int runBuildIn( char *name, char **arg ); //return whether name is builtIn
+
 #endif /* !_BUILTINS_H_ */

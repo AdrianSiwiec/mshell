@@ -7,19 +7,16 @@
 
 int isForegroundChild( int pid );
 int removeForegroundChild( int pid );
-int addForegroundChild( int pid );
 
 volatile int foregroundPids[maxForegroundChildren];
 volatile int *foregroundPtr = foregroundPids;
+volatile int foregroundChildren = 0;
 
 volatile int zombiePids[maxBackgroundChildren];
 volatile int zombieStatuses[maxBackgroundChildren];
 volatile int zombieIt = 0;
 
 extern int _debug;
-
-volatile int foregroundChildren = 0;
-
 
 void childHandler( int sigNb )
 {
@@ -58,6 +55,57 @@ void childHandler( int sigNb )
   } while ( child > 0 );
 }
 
+void setChildHandler()
+{
+  struct sigaction act;
+  act.sa_handler = childHandler;
+  act.sa_flags = 0;
+  sigemptyset( &act.sa_mask );
+  sigaction( SIGCHLD, &act, NULL );
+}
+
+void addForegroundChild( int pid )
+{
+  *foregroundPtr = pid;
+  foregroundPtr++;
+}
+
+int isForegroundChild( int pid )
+{
+  int *p = foregroundPids;
+
+  while ( p != foregroundPtr )
+  {
+    if ( *p == pid ) return 1;
+
+    p++;
+  }
+
+  return 0;
+}
+
+int removeForegroundChild( int pid )
+{
+  if ( foregroundPids == foregroundPtr ) return -1;
+
+  int *p = foregroundPids;
+
+  while ( p != foregroundPtr )
+  {
+    if ( *p == pid )
+    {
+      *p = *( foregroundPtr - 1 );
+      foregroundPtr--;
+
+      return 0;
+    }
+
+    p++;
+  }
+
+  return -1;
+}
+
 void writeZombies()
 {
   int i;
@@ -83,54 +131,4 @@ void writeZombies()
   }
 
   zombieIt = 0;
-}
-
-void setChildHandler()
-{
-  struct sigaction act;
-  act.sa_handler = childHandler;
-  act.sa_flags = 0;
-  sigemptyset( &act.sa_mask );
-  sigaction( SIGCHLD, &act, NULL );
-}
-
-int addForegroundChild( int pid )
-{
-  *foregroundPtr = pid;
-  foregroundPtr++;
-}
-
-int isForegroundChild( int pid )
-{
-  int *p = foregroundPids;
-
-  while ( p != foregroundPtr )
-  {
-    if ( *p == pid ) return 1;
-
-    p++;
-  }
-
-  return 0;
-}
-int removeForegroundChild( int pid )
-{
-  if ( foregroundPids == foregroundPtr ) return -1;
-
-  int *p = foregroundPids;
-
-  while ( p != foregroundPtr )
-  {
-    if ( *p == pid )
-    {
-      *p = *( foregroundPtr - 1 );
-      foregroundPtr--;
-
-      return 0;
-    }
-
-    p++;
-  }
-
-  return -1;
 }

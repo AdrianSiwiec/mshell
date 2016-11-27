@@ -24,33 +24,62 @@ void writeIntOut( int i )
   writeOut( buf );
 }
 
-struct stat sb;
-
 int isInTty()
 {
+  struct stat sb;
   fstat( 0, &sb );
 
   return ( sb.st_mode & S_IFMT ) == S_IFCHR;
-  
 }
 
 void writePrompt()
 {
-    writeOut( PROMPT_STR );
+  writeOut( PROMPT_STR );
 }
 
+void parseError()
+{
+  writeErr( SYNTAX_ERROR_STR );
+  writeErr( "\n" );
+}
+
+void printErrno( char *filename, int errnum )
+{
+  if( filename != NULL )
+  {
+    writeErr( filename );
+    writeErr(": ");
+  }
+  switch ( errnum )
+  {
+    case ENOENT:
+      writeErr( "no such file or directory\n" );
+      break;
+
+    case EACCES:
+      writeErr( "permission denied\n" );
+      break;
+
+    default:
+      writeErr( "unhandled errno\n" );
+  }
+}
+
+// readLine start
+
 #define INBUFFER_SIZE MAX_LINE_LENGTH * 2
-char inBuffer[INBUFFER_SIZE];
-
-char *inBufferIt = inBuffer;
-char *inBufferBegin = inBuffer;
-char *inBufferEnd = inBuffer;
-
 int inBufferCurrentPos();
 int warpBuffer();
 int fillLine( char *dest, int maxSize );
 void setPointersToEndOfLine();
 void setPointersDefault();
+
+char inBuffer[INBUFFER_SIZE];
+char *inBufferIt = inBuffer;
+char *inBufferBegin = inBuffer;
+char *inBufferEnd = inBuffer;
+
+
 int readLine( char *str, int maxSize )
 {
   bool tooLongLine = false;
@@ -93,13 +122,21 @@ int readLine( char *str, int maxSize )
     }
     else if(readBytes == 0 )
     {
-      return 0; 
+      if( !isInTty() && inBufferIt - inBufferBegin > 0)
+      {
+        *(inBufferIt) = '\n';
+        inBufferEnd++;
+      }
+      else
+      {
+        return 0;
+      }
     }
     else
     {
-      if ( readBytes < 0 && ( errno == EAGAIN || errno == EINTR ) ) continue;
+      if ( errno == EAGAIN || errno == EINTR ) continue;
 
-      //return readBytes;
+      return readBytes;
     }
   }
 }
@@ -108,20 +145,16 @@ int inBufferCurrentPos()
 {
   return inBufferIt - inBuffer;
 }
+
 int warpBuffer()
 {
   if ( inBufferBegin == inBuffer )
   {
-    for(int i=0; i<INBUFFER_SIZE; i++)
-    {
-      inBuffer[i] = 0; 
-    }
     setPointersDefault();
     return -1;
   }
 
   char *ptr = inBuffer;
-
   char *c;
 
   for ( c = inBufferBegin; c < inBufferEnd; c++ )
@@ -137,6 +170,7 @@ int warpBuffer()
 
   return 0;
 }
+
 int fillLine( char *dest, int maxSize )
 {
   if ( inBufferIt - inBufferBegin > maxSize )
@@ -183,28 +217,4 @@ void setPointersDefault()
   inBufferEnd = inBuffer;
 }
 
-void parseError()
-{
-  writeErr( SYNTAX_ERROR_STR );
-  writeErr( "\n" );
-}
 
-void printErrno( char *filename, int errnum )
-{
-  switch ( errnum )
-  {
-    case ENOENT:
-      writeErr( filename );
-      writeErr( ": no such file or directory\n" );
-      break;
-
-    case EACCES:
-      writeErr( filename );
-      writeErr( ": permission denied\n" );
-      break;
-
-    default:
-      writeErr( filename );
-      writeErr( ": unhandled errno\n" );
-  }
-}

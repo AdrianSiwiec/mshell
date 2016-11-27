@@ -19,10 +19,11 @@ int undefined( char *argv[] );
 
 void onBuiltErr( char *name );
 
+
 builtin_pair builtins_table[] = {
   {"exit", &lexit}, {"lecho", &echo}, {"lcd", &lcd}, {"lkill", &lkill}, {"lls", &lls}, {NULL, NULL}};
 
-BuiltInPtr runBuildIn( char *name, char **arg )
+int runBuildIn( char *name, char **arg )
 {
   builtin_pair *pair = builtins_table;
 
@@ -44,13 +45,15 @@ int echo( char *argv[] )
 {
   int i = 1;
 
-  if ( argv[i] ) printf( "%s", argv[i++] );
+  if ( argv[i] ) writeOut( argv[i++] );
 
   while ( argv[i] )
-    printf( " %s", argv[i++] );
+  {
+    writeOut(" ");
+    writeOut( argv[i++] );
+  }
 
-  printf( "\n" );
-  fflush( stdout );
+  writeOut("\n");
   return 0;
 }
 
@@ -110,19 +113,12 @@ int lkill( char *argv[] )
 
   if ( argv[2] == NULL )
   {
-    if ( strcmp( argv[1], "0" ) == 0 )
-    {
-      pid = 0;
-    }
-    else
-    {
-      pid = strtol( argv[1], 0, 10 );
+    pid = strtol( argv[1], 0, 10 );
 
-      if ( pid == 0 )
-      {
-        onBuiltErr( argv[0] );
-        return -1;
-      }
+    if ( pid == 0 && strcmp( argv[1], "0" ) != 0 )
+    {
+      onBuiltErr( argv[0] );
+      return -1;
     }
 
     sigNum = SIGTERM;
@@ -145,7 +141,8 @@ int lkill( char *argv[] )
     }
   }
 
-  if( _debug ) printf("Trying to kill %d with %d", pid, sigNum);
+  if( _debug ) printf("__Trying to kill %d with %d", pid, sigNum);
+  
   res = kill( pid, sigNum );
 
   if ( res == -1 )
@@ -176,7 +173,7 @@ int lls( char *argv[] )
   if ( pDir == NULL )
   {
     onBuiltErr( argv[0] );
-    return errno;
+    return -1;
   }
 
   while ( ( pDirent = readdir( pDir ) ) != NULL )
@@ -193,16 +190,10 @@ int lls( char *argv[] )
   if ( res == -1 )
   {
     onBuiltErr( argv[0] );
-    return errno;
+    return -1;
   }
 
   return 0;
-}
-
-int undefined( char *argv[] )
-{
-  fprintf( stderr, "Command %s undefined.\n", argv[0] );
-  return BUILTIN_ERROR;
 }
 
 void onBuiltErr( char *name )
@@ -210,4 +201,10 @@ void onBuiltErr( char *name )
   writeErr( "Builtin " );
   writeErr( name );
   writeErr( " error.\n" );
+}
+
+int undefined( char *argv[] )
+{
+  fprintf( stderr, "Command %s undefined.\n", argv[0] );
+  return BUILTIN_ERROR;
 }

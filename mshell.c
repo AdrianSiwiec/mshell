@@ -9,9 +9,10 @@
 #include "utils.h"
 
 void processLine( line *ln );
-int processPipeline( pipeline *p, int isBackground );
+int processPipeline( pipeline *p, int isBackground ); // returns if there was builtIn in pipeline
 void onExecError( command *cmd );
 void setSIGINTHandler();
+sigset_t blockSignal( int how, int signum ); //returns old mask
 
 extern volatile int foregroundChildren;
 struct sigaction oldSIGINTHandler;
@@ -50,14 +51,19 @@ int main( int argc, char *argv[] )
     }
     else if ( length == 0 )
     {
+      if( isInTty() )
+      {
+        writeOut("\n"); 
+      }
       exit( 0 );
     }
     else
     {
+      printErrno( NULL, errno );
       exit( 1 );
     }
 
-    if(_debug) printf("__\n\n");
+    if(_debug) printf("\n\n");
   }
 }
 
@@ -75,11 +81,9 @@ void processLine( line *ln )
 
   pipeline *p = ln->pipelines;
 
-  sigset_t oldMask, newMask;
-
-  sigemptyset( &newMask );
-  sigaddset( &newMask, SIGCHLD );
-  sigprocmask( SIG_BLOCK, &newMask, &oldMask );
+  sigset_t oldMask;
+  
+  oldMask = blockSignal( SIG_BLOCK, SIGCHLD );
 
   while ( *p != NULL )
   {
@@ -115,7 +119,7 @@ int processPipeline( pipeline *p, int isBackground )
   {
     command *cmd = *pcmd;
 
-    if ( runBuildIn(cmd->argv[0], cmd->argv ))  // if is builtIn
+    if ( runBuildIn(cmd->argv[0], cmd->argv ))
     {
       wasBuiltIn = 1;
     }
@@ -125,15 +129,14 @@ int processPipeline( pipeline *p, int isBackground )
       {
         if ( pipe( nextP ) < 0 )
         {
-          printf( "could not create pipe\n" );
-          // TODO cannot create pipe
+          if(_debug) printf( "could not create pipe\n" );
           exit( 1 );
         }
       }
 
       int childPid = fork();
 
-      if ( childPid )
+      if ( childPid ) //father
       {
         if ( !isBackground )
         {
@@ -145,21 +148,19 @@ int processPipeline( pipeline *p, int isBackground )
 
         if ( !isFirstPCmd( pcmd, p ) ) close( prevP[0] );
       }
-      else
+      else //son
       {
         if ( isBackground )
         {
           setsid();
         }
 
-        sigset_t newMask;
-        sigemptyset( &newMask );
-        sigaddset( &newMask, SIGINT );
-        sigprocmask( SIG_UNBLOCK, &newMask, NULL );
+        blockSignal( SIG_UNBLOCK, SIGINT );
 
         redirectPipes( prevP, nextP, pcmd, p );
 
-        int redirectionError = redirectFiles( cmd, p );
+        int redirectionError;
+        redirectionError = redirectFiles( cmd, p );
 
         if( !redirectionError )
         {
@@ -185,22 +186,16 @@ void onExecError( command *cmd )
   exit( EXEC_FAILURE );
 }
 
-void SIGINTHandler()
-{
-  writeOut( "\n" );
-  writePrompt();
-}
-
 void setSIGINTHandler()
 {
-  //  struct sigaction act;
-  //  act.sa_handler = SIGINTHandler;
-  //  act.sa_flags = 0;
-  //  sigemptyset( &act.sa_mask );
-  //  sigaction( SIGINT, &act, &oldSIGINTHandler );
+  blockSignal( SIG_BLOCK, SIGINT );
+}
 
-  sigset_t newMask;
+sigset_t blockSignal( int how, int signum )
+{
+  sigset_t oldMask, newMask; 
   sigemptyset( &newMask );
-  sigaddset( &newMask, SIGINT );
-  sigprocmask( SIG_BLOCK, &newMask, NULL );
+  sigaddset( &newMask, signum );
+  sigprocmask( how, &newMask, &oldMask );
+  return oldMask;
 }
