@@ -1,18 +1,18 @@
 #include <errno.h>
 #include <signal.h>
 #include <stdio.h>
-#include <sys/wait.h>
 #include <sys/cdefs.h>
+#include <sys/wait.h>
 
 #include "builtins.h"
 #include "config.h"
 #include "utils.h"
 
 void processLine( line *ln );
-int processPipeline( pipeline *p, int isBackground ); // returns if there was builtIn in pipeline
+int processPipeline( pipeline *p, int isBackground );  // returns if there was builtIn in pipeline
 void onExecError( command *cmd );
 void setSIGINTHandler();
-sigset_t blockSignal( int how, int signum ); //returns old mask
+sigset_t blockSignal( int how, int signum );  // returns old mask
 
 extern volatile int foregroundChildren;
 struct sigaction oldSIGINTHandler;
@@ -29,14 +29,15 @@ int main( int argc, char *argv[] )
 
   while ( 1 )
   {
-    if( isInTty())
+    if ( isInTty() )
     {
       writeZombies();
       writePrompt();
     }
+
     int length = readLine( input, MAX_LINE_LENGTH );
 
-    if(_debug) printf("__read returned %d\n", length);
+    if ( _debug ) printf( "__read returned %d\n", length );
 
     if ( length > 0 && length < MAX_LINE_LENGTH )
     {
@@ -51,10 +52,11 @@ int main( int argc, char *argv[] )
     }
     else if ( length == 0 )
     {
-      if( isInTty() )
+      if ( isInTty() )
       {
-        writeOut("\n"); 
+        writeOut( "\n" );
       }
+
       exit( 0 );
     }
     else
@@ -63,7 +65,7 @@ int main( int argc, char *argv[] )
       exit( 1 );
     }
 
-    if(_debug) printf("\n\n");
+    if ( _debug ) printf( "\n\n" );
   }
 }
 
@@ -82,7 +84,7 @@ void processLine( line *ln )
   pipeline *p = ln->pipelines;
 
   sigset_t oldMask;
-  
+
   oldMask = blockSignal( SIG_BLOCK, SIGCHLD );
 
   while ( *p != NULL )
@@ -119,7 +121,7 @@ int processPipeline( pipeline *p, int isBackground )
   {
     command *cmd = *pcmd;
 
-    if ( runBuildIn(cmd->argv[0], cmd->argv ))
+    if ( runBuildIn( cmd->argv[0], cmd->argv ) )
     {
       wasBuiltIn = 1;
     }
@@ -129,14 +131,15 @@ int processPipeline( pipeline *p, int isBackground )
       {
         if ( pipe( nextP ) < 0 )
         {
-          if(_debug) printf( "could not create pipe\n" );
+          if ( _debug ) printf( "could not create pipe\n" );
+
           exit( 1 );
         }
       }
 
       int childPid = fork();
 
-      if ( childPid ) //father
+      if ( childPid )  // father
       {
         if ( !isBackground )
         {
@@ -148,7 +151,7 @@ int processPipeline( pipeline *p, int isBackground )
 
         if ( !isFirstPCmd( pcmd, p ) ) close( prevP[0] );
       }
-      else //son
+      else  // son
       {
         if ( isBackground )
         {
@@ -162,7 +165,7 @@ int processPipeline( pipeline *p, int isBackground )
         int redirectionError;
         redirectionError = redirectFiles( cmd, p );
 
-        if( !redirectionError )
+        if ( !redirectionError )
         {
           execvp( cmd->argv[0], cmd->argv );
           onExecError( cmd );
@@ -193,7 +196,7 @@ void setSIGINTHandler()
 
 sigset_t blockSignal( int how, int signum )
 {
-  sigset_t oldMask, newMask; 
+  sigset_t oldMask, newMask;
   sigemptyset( &newMask );
   sigaddset( &newMask, signum );
   sigprocmask( how, &newMask, &oldMask );

@@ -5,7 +5,8 @@ void writeOut( char *str );
 void writeIntOut( int i );
 void writeErr( char *str );
 void writePrompt();
-int readLine( char *str, int maxSize ); //reads line to str, returns number of read bytes, -2 if line was too long or -1 if read fails unexpectedly
+int readLine( char *str, int maxSize );  // reads line to str, returns number of read bytes, -2 if line was too long or
+                                         // -1 if read fails unexpectedly
 void parseError();
 void printErrno( char *filename, int errno );
 

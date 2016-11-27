@@ -1,5 +1,5 @@
-#include <fcntl.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <stdbool.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -45,11 +45,12 @@ void parseError()
 
 void printErrno( char *filename, int errnum )
 {
-  if( filename != NULL )
+  if ( filename != NULL )
   {
     writeErr( filename );
-    writeErr(": ");
+    writeErr( ": " );
   }
+
   switch ( errnum )
   {
     case ENOENT:
@@ -92,7 +93,8 @@ int readLine( char *str, int maxSize )
       {
         if ( warpBuffer() )
         {
-          if(_debug) printf("__line longer than buffer\n");
+          if ( _debug ) printf( "__line longer than buffer\n" );
+
           tooLongLine = true;
           break;
         }
@@ -100,7 +102,8 @@ int readLine( char *str, int maxSize )
 
       if ( *inBufferIt == '\n' )
       {
-        if(_debug) printf("__got endl!, before then was: %c\n", *(inBufferIt-1));
+        if ( _debug ) printf( "__got endl!, before then was: %c\n", *( inBufferIt - 1 ) );
+
         if ( tooLongLine )
         {
           fillLine( str, maxSize );
@@ -114,17 +117,18 @@ int readLine( char *str, int maxSize )
     }
 
     int readBytes = read( 0, inBufferIt, INBUFFER_SIZE - inBufferCurrentPos() );
-    if(_debug) printf("__read: %d\n", readBytes);
+
+    if ( _debug ) printf( "__read: %d\n", readBytes );
 
     if ( readBytes > 0 )
     {
       inBufferEnd += readBytes;
     }
-    else if(readBytes == 0 )
+    else if ( readBytes == 0 )
     {
-      if( !isInTty() && inBufferIt - inBufferBegin > 0)
+      if ( !isInTty() && inBufferIt - inBufferBegin > 0 )
       {
-        *(inBufferIt) = '\n';
+        *( inBufferIt ) = '\n';
         inBufferEnd++;
       }
       else
@@ -216,5 +220,3 @@ void setPointersDefault()
   inBufferBegin = inBuffer;
   inBufferEnd = inBuffer;
 }
-
-

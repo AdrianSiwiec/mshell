@@ -1,8 +1,8 @@
-#include <fcntl.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <string.h>
 
 #include "siparse.h"
 
@@ -33,14 +33,14 @@ int redirectFiles( command *cmd, pipeline *p )
 
   while ( *pRedir != NULL )
   {
-    if(processRedirection( *pRedir ) )
+    if ( processRedirection( *pRedir ) )
     {
-      return -1; 
+      return -1;
     }
 
     pRedir++;
   }
-  
+
   return 0;
 }
 
@@ -74,7 +74,7 @@ int processRedirection( redirection *redir )
     permission = S_IRWXU;
   }
 
-  
+
   int res = open( redir->filename, access, permission );
 
   if ( res == -1 )
@@ -83,16 +83,15 @@ int processRedirection( redirection *redir )
     return -1;
   }
 
- close( redirectTo );
+  close( redirectTo );
 
- if ( dup( res ) != redirectTo )
- {
-   printErrno( redir->filename, -1 );
-   return -1;
- }
- 
- close( res );
-  
+  if ( dup( res ) != redirectTo )
+  {
+    printErrno( redir->filename, -1 );
+    return -1;
+  }
+
+  close( res );
+
   return 0;
 }
-

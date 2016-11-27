@@ -21,7 +21,7 @@ void onBuiltErr( char *name );
 
 
 builtin_pair builtins_table[] = {
-  {"exit", &lexit}, {"lecho", &echo}, {"lcd", &lcd}, {"lkill", &lkill}, {"lls", &lls}, {NULL, NULL}};
+    {"exit", &lexit}, {"lecho", &echo}, {"lcd", &lcd}, {"lkill", &lkill}, {"lls", &lls}, {NULL, NULL}};
 
 int runBuildIn( char *name, char **arg )
 {
@@ -49,11 +49,11 @@ int echo( char *argv[] )
 
   while ( argv[i] )
   {
-    writeOut(" ");
+    writeOut( " " );
     writeOut( argv[i++] );
   }
 
-  writeOut("\n");
+  writeOut( "\n" );
   return 0;
 }
 
@@ -131,7 +131,7 @@ int lkill( char *argv[] )
       return -1;
     }
 
-    sigNum = strtol( argv[1]+1, 0, 10 );
+    sigNum = strtol( argv[1] + 1, 0, 10 );
     pid = strtol( argv[2], 0, 10 );
 
     if ( sigNum == 0 || ( pid == 0 && strcmp( argv[2], "0" ) != 0 ) )
@@ -141,8 +141,8 @@ int lkill( char *argv[] )
     }
   }
 
-  if( _debug ) printf("__Trying to kill %d with %d", pid, sigNum);
-  
+  if ( _debug ) printf( "__Trying to kill %d with %d", pid, sigNum );
+
   res = kill( pid, sigNum );
 
   if ( res == -1 )
