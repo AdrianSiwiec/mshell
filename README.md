@@ -1,6 +1,6 @@
-Simple shell written in c. I features:
+Simple shell written in c. It features:
 
-- pipelines
+- multiple pipelines in a line
 
 - file redirections
 
