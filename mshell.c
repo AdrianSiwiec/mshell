@@ -8,11 +8,14 @@
 #include "config.h"
 #include "utils.h"
 
+typedef void (*sighandler_t)(int);
+
 void processLine( line *ln );
 int processPipeline( pipeline *p, int isBackground );  // returns if there was builtIn in pipeline
 void onExecError( command *cmd );
 void setSIGINTHandler();
-sigset_t blockSignal( int how, int signum );  // returns old mask
+void discardSIGINTHandler();
+sigset_t signalProcmask( int how, int signum );  // returns old mask
 
 extern volatile int foregroundChildren;
 struct sigaction oldSIGINTHandler;
@@ -85,7 +88,7 @@ void processLine( line *ln )
 
   sigset_t oldMask;
 
-  oldMask = blockSignal( SIG_BLOCK, SIGCHLD );
+  oldMask = signalProcmask( SIG_BLOCK, SIGCHLD );
 
   while ( *p != NULL )
   {
@@ -158,7 +161,7 @@ int processPipeline( pipeline *p, int isBackground )
           setsid();
         }
 
-        blockSignal( SIG_UNBLOCK, SIGINT );
+        discardSIGINTHandler();
 
         redirectPipes( prevP, nextP, pcmd, p );
 
@@ -191,10 +194,15 @@ void onExecError( command *cmd )
 
 void setSIGINTHandler()
 {
-  blockSignal( SIG_BLOCK, SIGINT );
+  signal( SIGINT, SIG_IGN );
 }
 
-sigset_t blockSignal( int how, int signum )
+void discardSIGINTHandler()
+{
+  signal( SIGINT, SIG_DFL ); 
+}
+
+sigset_t signalProcmask( int how, int signum )
 {
   sigset_t oldMask, newMask;
   sigemptyset( &newMask );
